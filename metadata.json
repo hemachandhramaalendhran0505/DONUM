@@ -1,0 +1,9 @@
+{
+  "name": "DONUM",
+  "description": "A smart distribution platform bridging the gap between excess resources and real needs through AI-driven matchmaking.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone",
+    "camera"
+  ]
+}
