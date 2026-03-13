@@ -93,17 +93,21 @@ const DonationForm: React.FC<DonationFormProps> = ({ onSubmit, language }) => {
     }
   };
 
-  const handleSmartAnalyze = async () => {
+const handleSmartAnalyze = async () => {
     if (!naturalInput.trim() && uploadedImages.length === 0) return;
     setIsAnalyzing(true);
+    
+    console.log('🧠 AI Analyze START - Input:', naturalInput, 'Images:', uploadedImages.length);
     
     // Pass images if any
     const result = await analyzeDonationInput(naturalInput, uploadedImages);
     
+    console.log('🧠 AI Analyze RESULT:', result);
+    
     if (result) {
-      setTitle(result.title);
+      setTitle(result.title || '');
       setCategory(result.category as Category);
-      setQuantity(result.quantity);
+      setQuantity(result.quantity || '');
       setUrgency(result.urgency as Urgency);
       if (result.location) setLocation(result.location);
       setDescription(naturalInput || `Donation of ${result.title}`);
@@ -116,9 +120,19 @@ const DonationForm: React.FC<DonationFormProps> = ({ onSubmit, language }) => {
          setExpiryDate(date.toISOString().split('T')[0]);
       }
 
+      // Show fallback warning if quota exceeded
+      if (result.error) {
+        console.warn('🤖 FALLBACK MODE: AI quota exceeded, using Smart Mock');
+        // Trigger brief notification (can be enhanced with toast)
+        setTimeout(() => {
+          alert(`📱 Smart Mock Activated (AI quota reached)\\nCategory: ${result.category}\\nTitle: ${result.title}`);
+        }, 100);
+      }
+
       setShowForm(true);
     } else {
-        setShowForm(true);
+      console.warn('❌ No result from analyzeDonationInput');
+      setShowForm(true);
     }
     setIsAnalyzing(false);
   };
@@ -297,8 +311,8 @@ const DonationForm: React.FC<DonationFormProps> = ({ onSubmit, language }) => {
             </div>
              <input type="file" ref={fileInputRef} className="hidden" multiple accept="image/*" onChange={handleImageUpload} />
              <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleImageUpload} />
-             <div className="flex justify-between items-center text-xs text-gray-500">
-                <p>*AI will detect category, urgency, and quantity.</p>
+              <div className="flex justify-between items-center text-xs text-gray-500">
+                <p>*AI detects category/urgency/quantity from text/images. <strong>Fallbacks work for ALL inputs!</strong></p>
                 <button type="button" onClick={() => setShowForm(true)} className="text-brand-600 hover:underline font-bold">Enter Manually</button>
              </div>
           </div>

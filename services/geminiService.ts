@@ -90,6 +90,7 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
     });
 
     let jsonString = response.text || "{}";
+    // Ensure return type includes optional error field
     
     // Clean up potential markdown formatting often returned by LLMs
     if (jsonString.startsWith('```json')) {
@@ -102,37 +103,71 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
   } catch (error) {
     console.error("Gemini analysis failed (Quota/Network):", error);
     
-    // MOCK FALLBACK for Demo Purposes
-    // If text contains keywords, return relevant mock data
-    const lowerInput = input.toLowerCase();
+    console.error("Gemini quota/network error. Using enhanced contextual mock:", { input, error });
     
-    if (lowerInput.includes('book') || lowerInput.includes('study')) {
+    // ENHANCED CONTEXTUAL MOCK FALLBACK - Dynamic based on input keywords
+    const lowerInput = input.toLowerCase().trim();
+    
+    // Comprehensive keyword mapping
+    if (lowerInput.includes('book') || lowerInput.includes('study') || lowerInput.includes('textbook')) {
         return {
-            title: "School Textbooks (Mock)",
-            category: "Books",
-            quantity: "1 Set",
+            title: "School Textbooks (Smart Mock)",
+            category: "Books" as const,
+            quantity: "2-5 books",
             urgency: "Low",
-            location: ""
+            location: "",
+            error: "ai_quota_exceeded"
         };
-    } else if (lowerInput.includes('shirt') || lowerInput.includes('cloth')) {
+    } else if (lowerInput.includes('shirt') || lowerInput.includes('cloth') || lowerInput.includes('pants') || lowerInput.includes('dress')) {
         return {
-            title: "Cotton Shirts (Mock)",
-            category: "Clothes",
-            quantity: "5 pcs",
+            title: "Mixed Clothing Items (Smart Mock)",
+            category: "Clothes" as const,
+            quantity: "10 pieces",
             urgency: "Medium",
-            location: ""
+            location: "",
+            error: "ai_quota_exceeded"
+        };
+    } else if (lowerInput.includes('food') || lowerInput.includes('meal') || lowerInput.includes('rice') || lowerInput.includes('bread')) {
+        return {
+            title: "Packed Food Items (Smart Mock)",
+            category: "Food" as const,
+            quantity: "5 kg",
+            urgency: "High",
+            location: "",
+            error: "ai_quota_exceeded"
+        };
+    } else if (lowerInput.includes('medicine') || lowerInput.includes('drug') || lowerInput.includes('pill') || lowerInput.includes('syrup')) {
+        return {
+            title: "Basic Medical Supplies (Smart Mock)",
+            category: "Medical" as const,
+            quantity: "1 box",
+            urgency: "Critical",
+            location: "",
+            error: "ai_quota_exceeded"
+        };
+    } else if (lowerInput.includes('laptop') || lowerInput.includes('phone') || lowerInput.includes('tablet')) {
+        return {
+            title: "Used Electronics (Smart Mock)",
+            category: "Electronics" as const,
+            quantity: "1-2 items",
+            urgency: "Medium",
+            location: "",
+            error: "ai_quota_exceeded"
         };
     }
-
-    // Default Mock
+    
+    // Smart generic fallback based on input length/content
+    const genericTitle = lowerInput || "Community Donation Items";
     return {
-        title: "Assorted Food Items (Mock AI)",
-        category: "Food",
-        quantity: "10 meals",
-        urgency: "High",
-        location: ""
+        title: `${genericTitle.substring(0, 30)}... (Smart Mock)`,
+        category: "Other" as const,
+        quantity: lowerInput.length > 20 ? "Multiple items" : "1 bundle",
+        urgency: "Medium",
+        location: "",
+        error: "ai_quota_exceeded"
     };
   }
+
 };
 
 /**
