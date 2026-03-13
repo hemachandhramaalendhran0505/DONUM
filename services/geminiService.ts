@@ -33,33 +33,31 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
     parts.push({
       text: `Analyze the provided images (up to 5) and text to create a structured donation listing.
       
-      STRICT IMAGE CLASSIFICATION RULES:
-      1. Look at ALL provided images. The image content is the primary source of truth.
-      2. If ANY image contains food, the 'category' MUST be 'Food'.
-      3. If images contain different items, prioritize Food, then Medical, then Clothes, then others.
-
-      FOOD ATTRIBUTE DETECTION (Crucial):
-      - Identify if the food appears HOT (steam, fresh cooking) or COLD.
-      - Identify if it is PACKED (boxes, sealed packets) or OPEN (in pots/containers).
-      - Identify if it is Fresh Produce or Cooked Meals.
-      - Include these attributes in the TITLE. E.g., "Hot Packed Veg Biryani", "Fresh Cold Milk", "Leftover Wedding Sambar (In Container)".
-
-      TITLE GENERATION INSTRUCTIONS:
-      - Combine findings from all images.
-      - Format: "[Attribute] [Item Name] [Quantity hint if visible]"
-      - Examples: 
-        - "5 Boxes of Hot Veg Meals"
-        - "Bag of Fresh Tomatoes and Onions"
-        - "Bundle of 3 Cotton Shirts and 1 Denim Jacket"
-        - "Stack of Class 10 Physics Textbooks"
-
-      URGENCY RULES:
-      - Hot/Cooked Food: 'Critical'
-      - Perishable/Cold Food: 'High'
-      - Packed/Dry Food: 'Medium'
-      - Non-food: 'Low' or 'Medium'
-
-      User Context Text: "${input}"`
+      EXACT VISUAL ANALYSIS (Primary):
+      VISUAL FIRST: Analyze IMAGES before text. Provide EXACT item details:
+      - Color, material, brand/logo, condition (new/good/worn).
+      - E.g., 'Blue Cotton Polo Shirt with Nike logo (Size M, Good condition)'
+      
+      STRICT IMAGE CLASSIFICATION (Same priority):
+      1. Food → 'Food' (hot/cold/packed/fresh)
+      2. Medical → 'Medical'
+      3. Clothes → 'Clothes' 
+      4. Books/Electronics → respective categories
+      
+      TITLE RULES:
+      - EXACT description from image: "[Color] [Material] [Item] [Brand if visible] [Qty hint]"
+      - Examples:
+        * Clothes: "Blue Cotton Shirt (2 pieces)"
+        * Food: "Hot Packed Veg Biryani (5 boxes)"
+        * Books: "Class 10 Physics Textbook (Stack of 4)"
+      
+      URGENCY:
+      - Food: Hot=Critical, Cold/Perishable=High, Dry=Medium
+      - Clothes/Medical: Medium (unless damaged=High)
+      - Books/Electronics: Low
+      - Other: Medium
+      
+      User Text Context: "${input}" (secondary to images)
     });
 
     const response = await ai.models.generateContent({
@@ -70,19 +68,32 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            title: { type: Type.STRING, description: "Specific name of the item including attributes (Hot, Packed, etc.) identified in the image" },
+            title: { 
+              type: Type.STRING, 
+              description: "EXACT item name from image analysis (include color/material/brand)" 
+            },
+            imageAnalysis: { 
+              type: Type.STRING, 
+              description: "Detailed visual description: color, material, condition, brands" 
+            },
             category: { 
               type: Type.STRING, 
               enum: ['Food', 'Clothes', 'Books', 'Stationery', 'Electronics', 'Medical', 'Other'],
-              description: "The strict category based on image analysis"
+              description: "Category from visual priority rules"
             },
-            quantity: { type: Type.STRING, description: "Estimated quantity e.g., '5 kg', '2 bags', '10 pieces'" },
+            quantity: { 
+              type: Type.STRING, 
+              description: "Visual quantity estimate: '1 shirt', '5 books', '2kg rice'" 
+            },
             urgency: { 
               type: Type.STRING, 
               enum: ['Low', 'Medium', 'High', 'Critical'],
-              description: "Urgency level based on perishability" 
+              description: "Visual perishability/condition-based urgency" 
             },
-            location: { type: Type.STRING, description: "Extracted location if present in text, else empty string" }
+            location: { 
+              type: Type.STRING, 
+              description: "From text only, empty if none" 
+            }
           },
           required: ["title", "category", "urgency", "quantity"]
         }
@@ -99,7 +110,12 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
         jsonString = jsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    return JSON.parse(jsonString);
+    const parsedResult = JSON.parse(jsonString);
+    
+    // Log for debugging exact details
+    console.log('🔍 AI Image Analysis:', parsedResult);
+    
+    return parsedResult;
   } catch (error) {
     console.error("Gemini analysis failed (Quota/Network):", error);
     
