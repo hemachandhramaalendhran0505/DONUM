@@ -1,10 +1,15 @@
-# Task Progress: Intelligent AI Chatbot
+# Task Progress: Image Vision Autofill ✅
 
-## TODO Steps
-- [x] Step 1: Create TODO + new branch blackboxai/chat-intelligent-fix
-- [x] Step 2: Enhanced chatWithBot fallback with keyword intelligence (food/clothes/books/volunteer/map suggestions)
-- [x] Step 3: Added .env VITE_GEMINI_API_KEY support
-- [x] Step 4: Fixed TS errors (removed Type import, cast import.meta.env)
-- [x] Step 5: Dev server running (port 3001 due to 3000 in use)
-- [ ] Step 6: Test chat in browser: try 'food', 'volunteer', 'nearby'
-- [ ] Step 7: Commit changes + PR
+## Completed Steps
+- [x] Replaced geminiService.ts with fixed.ts (Gemini 2.5 Flash, image base64 analysis)
+- [x] VISUAL FIRST prompt (exact items: color/brand/condition)
+- [x] JSON schema validation
+- [x] Enhanced mocks + .env support
+- [x] TS fixes
+- [x] Dev server reloaded (@google/genai optimized)
+
+**Status:** Ready for image upload test!
+
+**Test:** Upload rice photo in DonationForm → Expect "White Rice Bag (Food, High urgency)"
+
+**Next:** Commit/PR
