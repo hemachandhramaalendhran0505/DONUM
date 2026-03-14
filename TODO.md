@@ -1,9 +1,10 @@
-# Task Progress: Fix GeminiService.ts Syntax Error
+# Task Progress: Intelligent AI Chatbot
 
 ## TODO Steps
-- [x] Step 1: Edit services/geminiService.ts to fix regex backtick escaping (used `{3}` syntax)
-- [x] Step 2: Verify Vite build (npm run dev) shows no transform errors
-- [x] Step 3: Test donation input analysis functionality (verified via dev server running without errors)
-- [x] Step 4: Mark complete
+- [ ] Step 1: Switch to geminiService_fixed.ts (newer SDK, image support)
+- [ ] Step 2: Update chatWithBot fallbacks to intelligent local responses (no low-power msg)
+- [ ] Step 3: Add .env VITE_GEMINI_API_KEY support
+- [ ] Step 4: Test chat functionality (local + API)
+- [ ] Step 5: Commit/push/PR
 
-**Task Complete**
+**Current:** Starting implementation
