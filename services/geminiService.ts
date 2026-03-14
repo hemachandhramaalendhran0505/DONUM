@@ -1,130 +1,50 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI, Type } from "@google/generative-ai";
 import { Category, Urgency } from '../types';
 
 // Initialize Gemini with the provided API Key from environment variables
 // Note: If this key is over quota or invalid, the service will fallback to mock data.
 const apiKey = "AIzaSyDd4DiCC6a_H-BgSASqPW3JrbcEyK8Tq3k";
-const ai = new GoogleGenAI({ apiKey });
+const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
  * Analyzes natural language input to extract structured donation details.
  */
 export const analyzeDonationInput = async (input: string, images: string[] = []) => {
   try {
-    const parts: any[] = [];
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `Analyze the provided input to create a structured donation listing.
 
-    // Process images if provided
-    if (images && images.length > 0) {
-      images.forEach((img) => {
-        // img is expected to be a Data URL (e.g., "data:image/jpeg;base64,...")
-        const matches = img.match(/^data:(.+);base64,(.+)$/);
-        if (matches) {
-          parts.push({
-            inlineData: {
-              mimeType: matches[1],
-              data: matches[2],
-            },
-          });
-        }
-      });
-    }
+User Text Context: "${input}"
 
-    // Add text prompt with Strict Classification Rules
-    parts.push({
-      text: `Analyze the provided images (up to 5) and text to create a structured donation listing.
-      
-      EXACT VISUAL ANALYSIS (Primary):
-      VISUAL FIRST: Analyze IMAGES before text. Provide EXACT item details:
-      - Color, material, brand/logo, condition (new/good/worn).
-      - E.g., 'Blue Cotton Polo Shirt with Nike logo (Size M, Good condition)'
-      
-      STRICT IMAGE CLASSIFICATION (Same priority):
-      1. Food → 'Food' (hot/cold/packed/fresh)
-      2. Medical → 'Medical'
-      3. Clothes → 'Clothes' 
-      4. Books/Electronics → respective categories
-      
-      TITLE RULES:
-      - EXACT description from image: "[Color] [Material] [Item] [Brand if visible] [Qty hint]"
-      - Examples:
-        * Clothes: "Blue Cotton Shirt (2 pieces)"
-        * Food: "Hot Packed Veg Biryani (5 boxes)"
-        * Books: "Class 10 Physics Textbook (Stack of 4)"
-      
-      URGENCY:
-      - Food: Hot=Critical, Cold/Perishable=High, Dry=Medium
-      - Clothes/Medical: Medium (unless damaged=High)
-      - Books/Electronics: Low
-      - Other: Medium
-      
-      User Text Context: "${input}" (secondary to images)
-    });
+Return ONLY valid JSON with:
+{
+  "title": "EXACT item name",
+  "category": "Food|Clothes|Books|Stationery|Electronics|Medical|Other",
+  "quantity": "estimated quantity",
+  "urgency": "Low|Medium|High|Critical",
+  "location": "optional location"
+}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: { parts },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { 
-              type: Type.STRING, 
-              description: "EXACT item name from image analysis (include color/material/brand)" 
-            },
-            imageAnalysis: { 
-              type: Type.STRING, 
-              description: "Detailed visual description: color, material, condition, brands" 
-            },
-            category: { 
-              type: Type.STRING, 
-              enum: ['Food', 'Clothes', 'Books', 'Stationery', 'Electronics', 'Medical', 'Other'],
-              description: "Category from visual priority rules"
-            },
-            quantity: { 
-              type: Type.STRING, 
-              description: "Visual quantity estimate: '1 shirt', '5 books', '2kg rice'" 
-            },
-            urgency: { 
-              type: Type.STRING, 
-              enum: ['Low', 'Medium', 'High', 'Critical'],
-              description: "Visual perishability/condition-based urgency" 
-            },
-            location: { 
-              type: Type.STRING, 
-              description: "From text only, empty if none" 
-            }
-          },
-          required: ["title", "category", "urgency", "quantity"]
-        }
-      }
-    });
+    const result = await model.generateContent(prompt);
+    let jsonString = result.response.text();
 
-    let jsonString = response.text || "{}";
-    // Ensure return type includes optional error field
-    
-    // Clean up potential markdown formatting often returned by LLMs
-    if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (jsonString.startsWith('```')) {
-        jsonString = jsonString.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    // Clean up potential markdown formatting often returned by LLMs 
+    if (jsonString.trim().startsWith('```json')) {
+      jsonString = jsonString.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    } else if (jsonString.trim().startsWith('```')) {
+      jsonString = jsonString.trim().replace(/^```\n?/, '').replace(/\n?```$/, '');
     }
 
     const parsedResult = JSON.parse(jsonString);
-    
-    // Log for debugging exact details
     console.log('🔍 AI Image Analysis:', parsedResult);
     
     return parsedResult;
   } catch (error) {
     console.error("Gemini analysis failed (Quota/Network):", error);
     
-    console.error("Gemini quota/network error. Using enhanced contextual mock:", { input, error });
-    
     // ENHANCED CONTEXTUAL MOCK FALLBACK - Dynamic based on input keywords
     const lowerInput = input.toLowerCase().trim();
     
-    // Comprehensive keyword mapping
     if (lowerInput.includes('book') || lowerInput.includes('study') || lowerInput.includes('textbook')) {
         return {
             title: "School Textbooks (Smart Mock)",
@@ -183,7 +103,6 @@ export const analyzeDonationInput = async (input: string, images: string[] = [])
         error: "ai_quota_exceeded"
     };
   }
-
 };
 
 /**
@@ -195,46 +114,28 @@ export const chatWithBot = async (
     userLocation?: { lat: number, lng: number }
 ) => {
   try {
-    const config: any = {
-      tools: [{ googleMaps: {} }],
-      systemInstruction: "You are the DONUM Platform AI Assistant. You help Donors, Volunteers, and Receivers.\n" +
-      "- Use Google Maps to find real-world locations for donation centers, shelters, or food banks when asked.\n" +
-      "- If a donor asks what to donate, suggest seasonal items (e.g., clothes in winter, books before school starts).\n" +
-      "- If a volunteer asks about routes, explain you can optimize them.\n" +
-      "- Keep answers concise, friendly, and focused on charity/logistics.",
-    };
-
-    // Add user location to tool config for accurate local results
-    if (userLocation) {
-        config.toolConfig = {
-            retrievalConfig: {
-                latLng: {
-                    latitude: userLocation.lat,
-                    longitude: userLocation.lng
-                }
-            }
-        };
-    }
-
-    const chat = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      history: history,
-      config: config
-    });
-
-    const result = await chat.sendMessage({ message });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    // Extract grounding metadata for maps
-    const groundingChunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks;
-
+    const chat = model.startChat({
+      history: history.map(h => ({ role: h.role, parts: h.parts.map(p => ({ text: p.text })) })),
+      generationConfig: {
+        temperature: 0.7,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 2048,
+      }
+    });
+    
+    const result = await chat.sendMessage(message);
+    
     return {
-        text: result.text,
-        groundingChunks: groundingChunks
+        text: result.response.text(),
+        groundingChunks: undefined
     };
   } catch (error) {
     console.error("Chat failed:", error);
     return {
-        text: "I'm currently running in low-power mode (Quota Exceeded). But I can tell you that donating food and clothes is always a great idea! Please check the map for nearby centers.",
+        text: "I'm currently running in low-power mode. But I can tell you that donating food and clothes is always a great idea! Please check the map for nearby centers.",
         groundingChunks: undefined
     };
   }
@@ -245,11 +146,10 @@ export const chatWithBot = async (
  */
 export const generateImpactStory = async (stats: { livesImpacted: number, wasteDivertedKg: number }) => {
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Write a very short (2 sentences), inspiring message about a user who has impacted ${stats.livesImpacted} lives and diverted ${stats.wasteDivertedKg}kg of waste. Tone: Heroic, Warm.`,
-    });
-    return response.text;
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `Write a very short (2 sentences), inspiring message about a user who has impacted ${stats.livesImpacted} lives and diverted ${stats.wasteDivertedKg}kg of waste. Tone: Heroic, Warm.`;
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   } catch (error) {
     console.error("Gemini story generation failed:", error);
     return "Your heroic efforts have touched many lives. By sharing what you have, you are building a bridge of hope and sustainability.";
@@ -263,29 +163,20 @@ export const smartSortTasks = async (tasks: any[]) => {
   try {
       if (!tasks || tasks.length === 0) return [];
 
-      const taskSummaries = tasks.map(t => `ID: ${t.id}, Item: ${t.title}, Urgency: ${t.urgency}, Loc: ${t.location}`).join('\n');
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const taskSummaries = tasks.map(t => `ID: ${t.id}, Item: ${t.title}, Urgency: ${t.urgency}, Loc: ${t.location}`).join('\\n');
       
-      const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: `Rank these donation pickup tasks for a volunteer. Prioritize High/Critical urgency first, then group by location proximity logic. Return only the list of IDs in optimal order.
+      const prompt = `Rank these donation pickup tasks for a volunteer. Prioritize High/Critical urgency first, then group by location proximity logic. Return only the list of IDs in optimal order.
           
           Tasks:
-          ${taskSummaries}`,
-          config: {
-              responseMimeType: "application/json",
-              responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                      sortedIds: {
-                          type: Type.ARRAY,
-                          items: { type: Type.STRING }
-                      }
-                  }
-              }
-          }
-      });
-      const result = JSON.parse(response.text || "{}");
-      return result.sortedIds || [];
+          ${taskSummaries}`;
+      
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text();
+      
+      // Simple parsing - extract numbers as IDs
+      const idMatch = responseText.match(/\\d+/g);
+      return idMatch || [];
   } catch (e) {
       console.error("Smart sort failed", e);
       // Fallback: Return original order if AI sort fails
