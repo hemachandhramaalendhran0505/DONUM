@@ -1,9 +1,15 @@
-# Task Progress: Fix GeminiService.ts Syntax Error
+# Task Progress: Image Vision Autofill ✅
 
-## TODO Steps
-- [x] Step 1: Edit services/geminiService.ts to fix regex backtick escaping (used `{3}` syntax)
-- [x] Step 2: Verify Vite build (npm run dev) shows no transform errors
-- [x] Step 3: Test donation input analysis functionality (verified via dev server running without errors)
-- [x] Step 4: Mark complete
+## Completed Steps
+- [x] Replaced geminiService.ts with fixed.ts (Gemini 2.5 Flash, image base64 analysis)
+- [x] VISUAL FIRST prompt (exact items: color/brand/condition)
+- [x] JSON schema validation
+- [x] Enhanced mocks + .env support
+- [x] TS fixes
+- [x] Dev server reloaded (@google/genai optimized)
 
-**Task Complete**
+**Status:** Ready for image upload test!
+
+**Test:** Upload rice photo in DonationForm → Expect "White Rice Bag (Food, High urgency)"
+
+**Next:** Commit/PR
