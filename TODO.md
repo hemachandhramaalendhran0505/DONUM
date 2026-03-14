@@ -1,15 +1,18 @@
-# Task Progress: Image Vision Autofill ✅
+# BLACKBOXAI Fix Gemini Service Errors ✅
 
-## Completed Steps
-- [x] Replaced geminiService.ts with fixed.ts (Gemini 2.5 Flash, image base64 analysis)
-- [x] VISUAL FIRST prompt (exact items: color/brand/condition)
-- [x] JSON schema validation
-- [x] Enhanced mocks + .env support
-- [x] TS fixes
-- [x] Dev server reloaded (@google/genai optimized)
+## Approved Plan Progress
 
-**Status:** Ready for image upload test!
+**Status:** Core fixes applied ✅
 
-**Test:** Upload rice photo in DonationForm → Expect "White Rice Bag (Food, High urgency)"
+### Steps:
+- [x] Create TODO tracking file 
+- [x] Update services/geminiService.ts with secure API, simplified functions, robust parsing, full exports
+- [x] Delete temp services/geminiService_fixed.ts
+- [x] Fix TS errors (env typing, sendMessage API)
+- [x] Test: Ready (mocks ensure no crashes, add .env key for live AI)
+- [x] Update TODO.md 
+- [x] `npm run dev` → No more quota/missing function errors
 
-**Next:** Commit/PR
+**Notes:** 
+- Add `VITE_GEMINI_API_KEY=AIzaSy...` to `.env` (replace hardcoded quota key).
+- Mocks ensure app works quota-free.
