@@ -1,9 +1,9 @@
-import { GoogleGenerativeAI, Type } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Category, Urgency } from '../types';
 
 // Initialize Gemini with the provided API Key from environment variables
 // Note: If this key is over quota or invalid, the service will fallback to mock data.
-const apiKey = "AIzaSyDd4DiCC6a_H-BgSASqPW3JrbcEyK8Tq3k";
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyDd4DiCC6a_H-BgSASqPW3JrbcEyK8Tq3k";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
@@ -134,8 +134,26 @@ export const chatWithBot = async (
     };
   } catch (error) {
     console.error("Chat failed:", error);
+    // Intelligent fallback - keyword based suggestions
+    const lowerMsg = message.toLowerCase();
+    let response = "Thanks! ";
+    
+    if (lowerMsg.includes('food') || lowerMsg.includes('rice') || lowerMsg.includes('meal') || lowerMsg.includes('eat')) {
+        response += "Food donations save lives! Check Madiwala Shelter or Akshaya Patra on the map.";
+    } else if (lowerMsg.includes('clothes') || lowerMsg.includes('shirt') || lowerMsg.includes('dress')) {
+        response += "Clothing for Goonj Foundation—see volunteer feed for urgent needs!";
+    } else if (lowerMsg.includes('book') || lowerMsg.includes('study')) {
+        response += "Books needed at Pratham—Whitefield area. View categories!";
+    } else if (lowerMsg.includes('volunteer') || lowerMsg.includes('help')) {
+        response += "Volunteers welcome! Check Volunteer tab for food runs nearby.";
+    } else if (lowerMsg.includes('nearby') || lowerMsg.includes('location')) {
+        response += "Map shows all donations within 5km—tap for directions!";
+    } else {
+        response += "Donate food/clothes/books, volunteer, or check map for urgent needs!";
+    }
+    
     return {
-        text: "I'm currently running in low-power mode. But I can tell you that donating food and clothes is always a great idea! Please check the map for nearby centers.",
+        text: response,
         groundingChunks: undefined
     };
   }
